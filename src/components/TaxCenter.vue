@@ -1,5 +1,3 @@
-import { login, logout } from '../api/login.js'
-import { addFavorite, removeFavorite, getFavorites } from '../api/favorite.js'
 <template>
   <div class="tax-center-app bg-gray-50 min-h-screen">
     <!-- 登录模态框 -->
@@ -17,30 +15,30 @@ import { addFavorite, removeFavorite, getFavorites } from '../api/favorite.js'
         <form @submit.prevent="handleLogin">
           <div class="mb-4">
             <label for="username" class="block text-sm font-medium text-gray-700 mb-1">用户名</label>
-            <input 
-              v-model="loginForm.username" 
-              type="text" 
-              id="username" 
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="请输入用户名"
-              required
+            <input
+                v-model="loginForm.username"
+                type="text"
+                id="username"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="请输入用户名"
+                required
             />
           </div>
           <div class="mb-6">
             <label for="password" class="block text-sm font-medium text-gray-700 mb-1">密码</label>
-            <input 
-              v-model="loginForm.password" 
-              type="password" 
-              id="password" 
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="请输入密码"
-              required
+            <input
+                v-model="loginForm.password"
+                type="password"
+                id="password"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="请输入密码"
+                required
             />
           </div>
-          <button 
-            type="submit" 
-            class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            :disabled="isLoggingIn"
+          <button
+              type="submit"
+              class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              :disabled="isLoggingIn"
           >
             {{ isLoggingIn ? '登录中...' : '登录' }}
           </button>
@@ -57,12 +55,12 @@ import { addFavorite, removeFavorite, getFavorites } from '../api/favorite.js'
             <X class="h-5 w-5" />
           </button>
         </div>
-        
+
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           <div
-            v-for="(app, index) in allApplications"
-            :key="index"
-            class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer relative"
+              v-for="(app, index) in allApplications"
+              :key="index"
+              class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer relative"
           >
             <a :href="app.url || '#'" :target="app.url ? '_blank' : ''" class="block no-underline">
               <div class="flex items-start">
@@ -75,10 +73,10 @@ import { addFavorite, removeFavorite, getFavorites } from '../api/favorite.js'
                 </div>
               </div>
             </a>
-            <button 
-              @click.stop="toggleFavorite(app)"
-              class="absolute top-2 right-2 text-gray-400 hover:text-yellow-500 focus:outline-none"
-              :class="{ 'text-yellow-500': isFavorite(app) }"
+            <button
+                @click.stop="toggleFavorite(app)"
+                class="absolute top-2 right-2 text-gray-400 hover:text-yellow-500 focus:outline-none"
+                :class="{ 'text-yellow-500': isFavorite(app) }"
             >
               <Star class="h-4 w-4" :fill="isFavorite(app) ? 'currentColor' : 'none'" />
             </button>
@@ -110,22 +108,30 @@ import { addFavorite, removeFavorite, getFavorites } from '../api/favorite.js'
           <div v-if="selectedNotice.attachments && selectedNotice.attachments.length > 0" class="mt-6">
             <h4 class="font-medium text-gray-900 mb-2">附件</h4>
             <div class="space-y-2">
-              <div 
-                v-for="(attachment, index) in selectedNotice.attachments" 
-                :key="index"
-                class="flex items-center p-2 border border-gray-200 rounded-md hover:bg-gray-50"
+              <div
+                  v-for="(attachment, index) in selectedNotice.attachments"
+                  :key="index"
+                  class="flex items-center p-2 border border-gray-200 rounded-md hover:bg-gray-50"
               >
                 <FileText class="h-5 w-5 text-blue-500 mr-2" />
-                <a :href="attachment.url" class="text-blue-600 hover:underline">{{ attachment.name }}</a>
+                <button
+                    @click="downloadAttachment(attachment)"
+                    class="text-blue-600 hover:underline cursor-pointer flex-1 text-left"
+                    :disabled="downloadingFiles.includes(attachment.filename)"
+                >
+                  {{ attachment.name }}
+                  <span v-if="downloadingFiles.includes(attachment.filename)" class="ml-2 text-xs text-gray-500">(下载中...)</span>
+                </button>
                 <span class="ml-2 text-xs text-gray-500">({{ attachment.size }})</span>
+                <Download class="h-4 w-4 text-gray-400 ml-2" />
               </div>
             </div>
           </div>
         </div>
         <div class="flex justify-end">
-          <button 
-            @click="markNoticeAsRead" 
-            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <button
+              @click="markNoticeAsRead"
+              class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             标记为已读
           </button>
@@ -144,43 +150,40 @@ import { addFavorite, removeFavorite, getFavorites } from '../api/favorite.js'
                 <span class="ml-2 text-xl font-bold text-gray-900">台州数智强基平台</span>
               </div>
             </div>
-            <!-- 导航链接已移除 -->
           </div>
           <div class="flex items-center">
             <div class="relative">
               <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="搜索应用..."
-                class="bg-gray-100 rounded-full py-2 pl-10 pr-4 w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="搜索应用..."
+                  class="bg-gray-100 rounded-full py-2 pl-10 pr-4 w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
               />
               <div class="absolute left-3 top-2.5">
                 <Search class="h-5 w-5 text-gray-400" />
               </div>
             </div>
             <div class="ml-4 flex items-center">
-              <!-- <Bell class="h-6 w-6 text-gray-500 hover:text-blue-600 cursor-pointer" /> -->
-              <!-- 用户头像和下拉菜单 -->
               <div class="ml-4 relative">
                 <div v-if="currentUser" class="flex items-center cursor-pointer" @click="toggleUserMenu">
                   <img
-                    class="h-8 w-8 rounded-full"
-                    src="/images/1.jpg"
-                    alt="用户头像"
+                      class="h-8 w-8 rounded-full"
+                      src="/images/1.jpg"
+                      alt="用户头像"
                   />
                   <span class="ml-2 text-sm font-medium text-gray-700 hidden md:block">{{ currentUser.username }}</span>
                   <ChevronDown class="ml-1 h-4 w-4 text-gray-500" />
                 </div>
-                <button 
-                  v-else 
-                  @click="showLoginModal = true"
-                  class="ml-2 px-4 py-1 text-sm font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50"
+                <button
+                    v-else
+                    @click="showLoginModal = true"
+                    class="ml-2 px-4 py-1 text-sm font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50"
                 >
                   登录
                 </button>
                 <div
-                  v-if="showUserMenu && currentUser"
-                  class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10"
+                    v-if="showUserMenu && currentUser"
+                    class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10"
                 >
                   <div class="py-1">
                     <a @click="handleLogout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">退出登录</a>
@@ -198,18 +201,18 @@ import { addFavorite, removeFavorite, getFavorites } from '../api/favorite.js'
       <div class="flex flex-col md:flex-row">
         <!-- 左侧边栏 -->
         <div class="w-full md:w-64 mb-6 md:mb-0 md:mr-6 md:sticky md:top-6 md:self-start">
-          <!-- 公告栏移到上面 -->
+          <!-- 公告栏 -->
           <div class="bg-white rounded-lg shadow p-4 mb-6">
             <div class="flex justify-between items-center mb-3">
               <h3 class="text-lg font-medium text-gray-900">公告栏</h3>
-              <a href="#" class="text-xs text-blue-600 hover:text-blue-800">全部公告</a>
+              <button @click="router.push('/notice')" class="text-xs text-blue-600 hover:text-blue-800">全部公告</button>
             </div>
             <div class="space-y-3">
-              <div 
-                v-for="(notice, index) in notifications" 
-                :key="index" 
-                class="border-b border-gray-100 pb-3 last:border-0 last:pb-0 cursor-pointer hover:bg-gray-50 rounded-md p-2 -mx-2"
-                @click="openNoticeDetail(notice)"
+              <div
+                  v-for="(notice, index) in notifications"
+                  :key="index"
+                  class="border-b border-gray-100 pb-3 last:border-0 last:pb-0 cursor-pointer hover:bg-gray-50 rounded-md p-2 -mx-2"
+                  @click="openNoticeDetail(notice)"
               >
                 <div class="flex items-start">
                   <div class="flex-shrink-0 mt-0.5">
@@ -226,7 +229,7 @@ import { addFavorite, removeFavorite, getFavorites } from '../api/favorite.js'
               </div>
             </div>
           </div>
-          
+
           <!-- 收藏夹 -->
           <div class="bg-white rounded-lg shadow p-4">
             <h3 class="text-lg font-medium text-gray-900 mb-3">收藏夹</h3>
@@ -236,9 +239,9 @@ import { addFavorite, removeFavorite, getFavorites } from '../api/favorite.js'
                   <component :is="app.icon" class="h-5 w-5 mr-2" :class="`text-${app.color}-600`" />
                   <span>{{ app.name }}</span>
                 </a>
-                <button 
-                  @click.stop="toggleFavorite(app)"
-                  class="absolute top-2 right-2 text-yellow-500 hover:text-yellow-600 focus:outline-none"
+                <button
+                    @click.stop="toggleFavorite(app)"
+                    class="absolute top-2 right-2 text-yellow-500 hover:text-yellow-600 focus:outline-none"
                 >
                   <Star class="h-4 w-4" fill="currentColor" />
                 </button>
@@ -273,18 +276,18 @@ import { addFavorite, removeFavorite, getFavorites } from '../api/favorite.js'
           <div class="mb-6">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-xl font-bold text-gray-900">强基项目</h2>
-              <button 
-                @click="showAllAppsModal = true" 
-                class="text-sm text-blue-600 hover:text-blue-700 flex items-center"
+              <button
+                  @click="showAllAppsModal = true"
+                  class="text-sm text-blue-600 hover:text-blue-700 flex items-center"
               >
                 查看全部 <ChevronRight class="h-4 w-4 ml-1" />
               </button>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               <div
-                v-for="(app, index) in limitedAllApplications"
-                :key="index"
-                class="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow cursor-pointer relative"
+                  v-for="(app, index) in limitedAllApplications"
+                  :key="index"
+                  class="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow cursor-pointer relative"
               >
                 <a :href="app.url || '#'" :target="app.url ? '_blank' : ''" class="block no-underline">
                   <div class="flex flex-col items-center">
@@ -297,10 +300,10 @@ import { addFavorite, removeFavorite, getFavorites } from '../api/favorite.js'
                     </div>
                   </div>
                 </a>
-                <button 
-                  @click.stop="toggleFavorite(app)"
-                  class="absolute top-2 right-2 text-gray-400 hover:text-yellow-500 focus:outline-none"
-                  :class="{ 'text-yellow-500': isFavorite(app) }"
+                <button
+                    @click.stop="toggleFavorite(app)"
+                    class="absolute top-2 right-2 text-gray-400 hover:text-yellow-500 focus:outline-none"
+                    :class="{ 'text-yellow-500': isFavorite(app) }"
                 >
                   <Star class="h-4 w-4" :fill="isFavorite(app) ? 'currentColor' : 'none'" />
                 </button>
@@ -313,15 +316,15 @@ import { addFavorite, removeFavorite, getFavorites } from '../api/favorite.js'
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-xl font-bold text-gray-900">应用分类</h2>
             </div>
-            
+
             <div class="bg-white rounded-lg shadow overflow-hidden">
               <div class="border-b border-gray-200">
                 <div class="flex overflow-x-auto">
                   <button
-                    v-for="(category, index) in categories"
-                    :key="index"
-                    @click="activeCategory = category.id"
-                    :class="[
+                      v-for="(category, index) in categories"
+                      :key="index"
+                      @click="activeCategory = category.id"
+                      :class="[
                       'px-4 py-3 text-sm font-medium whitespace-nowrap',
                       activeCategory === category.id
                         ? 'text-blue-600 border-b-2 border-blue-600'
@@ -332,13 +335,13 @@ import { addFavorite, removeFavorite, getFavorites } from '../api/favorite.js'
                   </button>
                 </div>
               </div>
-              
+
               <div class="p-4">
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   <div
-                    v-for="(app, index) in paginatedApps"
-                    :key="index"
-                    class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer relative"
+                      v-for="(app, index) in paginatedApps"
+                      :key="index"
+                      class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer relative"
                   >
                     <a :href="app.url || '#'" :target="app.url ? '_blank' : ''" class="block no-underline">
                       <div class="flex items-start">
@@ -351,10 +354,10 @@ import { addFavorite, removeFavorite, getFavorites } from '../api/favorite.js'
                         </div>
                       </div>
                     </a>
-                    <button 
-                      @click.stop="toggleFavorite(app)"
-                      class="absolute top-2 right-2 text-gray-400 hover:text-yellow-500 focus:outline-none"
-                      :class="{ 'text-yellow-500': isFavorite(app) }"
+                    <button
+                        @click.stop="toggleFavorite(app)"
+                        class="absolute top-2 right-2 text-gray-400 hover:text-yellow-500 focus:outline-none"
+                        :class="{ 'text-yellow-500': isFavorite(app) }"
                     >
                       <Star class="h-4 w-4" :fill="isFavorite(app) ? 'currentColor' : 'none'" />
                     </button>
@@ -364,34 +367,34 @@ import { addFavorite, removeFavorite, getFavorites } from '../api/favorite.js'
               <!-- 分页控件 -->
               <div class="flex justify-center mt-6">
                 <nav class="flex items-center">
-                  <button 
-                    @click="prevPage" 
-                    :disabled="currentPage === 1"
-                    class="px-3 py-1 rounded-md mr-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  <button
+                      @click="prevPage"
+                      :disabled="currentPage === 1"
+                      class="px-3 py-1 rounded-md mr-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronLeft class="h-5 w-5" />
                   </button>
-                  
+
                   <div class="flex space-x-1">
-                    <button 
-                      v-for="page in displayedPageNumbers" 
-                      :key="page"
-                      @click="goToPage(page)"
-                      :class="[
+                    <button
+                        v-for="page in displayedPageNumbers"
+                        :key="page"
+                        @click="goToPage(page)"
+                        :class="[
                         'px-3 py-1 rounded-md',
-                        currentPage === page 
-                          ? 'bg-blue-600 text-white' 
+                        currentPage === page
+                          ? 'bg-blue-600 text-white'
                           : 'text-gray-600 hover:bg-gray-100'
                       ]"
                     >
                       {{ page }}
                     </button>
                   </div>
-                  
-                  <button 
-                    @click="nextPage" 
-                    :disabled="currentPage === totalPages"
-                    class="px-3 py-1 rounded-md ml-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+
+                  <button
+                      @click="nextPage"
+                      :disabled="currentPage === totalPages"
+                      class="px-3 py-1 rounded-md ml-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronRight class="h-5 w-5" />
                   </button>
@@ -416,11 +419,12 @@ import { addFavorite, removeFavorite, getFavorites } from '../api/favorite.js'
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
+const router = useRouter()
 import { ref, computed, onMounted, watch } from 'vue'
 import {
   BarChart3,
   Search,
-  //Bell,
   ChevronDown,
   ChevronRight,
   ChevronLeft,
@@ -451,9 +455,11 @@ import {
   Briefcase,
   Scale,
   Calendar,
-  User
+  User,
+  Download
 } from 'lucide-vue-next'
 import axios from 'axios'
+import { downloadFile } from '../api/fileService'
 
 // 用户登录状态
 const currentUser = ref(null)
@@ -476,6 +482,52 @@ const favorites = ref([])
 const showNoticeModal = ref(false)
 const selectedNotice = ref(null)
 
+// 下载状态跟踪
+const downloadingFiles = ref([])
+
+// 附件下载功能
+const downloadAttachment = async (attachment) => {
+  try {
+    // 添加到下载中列表
+    downloadingFiles.value.push(attachment.filename)
+
+    // 调用文件服务下载文件
+    await downloadFile(attachment.filename, attachment.name)
+
+    // 显示下载成功提示
+    showToast(`文件 "${attachment.name}" 下载成功！`, 'success')
+  } catch (error) {
+    console.error('下载失败:', error)
+    showToast(`文件 "${attachment.name}" 下载失败：${error.message}`, 'error')
+  } finally {
+    // 从下载中列表移除
+    const index = downloadingFiles.value.indexOf(attachment.filename)
+    if (index > -1) {
+      downloadingFiles.value.splice(index, 1)
+    }
+  }
+}
+
+// 显示提示消息
+const showToast = (message, type = 'info') => {
+  const toast = document.createElement('div')
+  const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+  toast.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-2 rounded-md shadow-lg z-50 transition-opacity duration-300`
+  toast.textContent = message
+  document.body.appendChild(toast)
+
+  setTimeout(() => {
+    if (document.body.contains(toast)) {
+      toast.style.opacity = '0'
+      setTimeout(() => {
+        if (document.body.contains(toast)) {
+          document.body.removeChild(toast)
+        }
+      }, 300)
+    }
+  }, 3000)
+}
+
 // 检查是否已登录和加载收藏夹
 onMounted(() => {
   // 检查登录状态
@@ -487,7 +539,7 @@ onMounted(() => {
       localStorage.removeItem('currentUser')
     }
   }
-  
+
   // 加载收藏夹
   const savedFavorites = localStorage.getItem('favorites')
   if (savedFavorites) {
@@ -497,7 +549,7 @@ onMounted(() => {
       localStorage.removeItem('favorites')
     }
   }
-  
+
   // 加载公告已读状态
   const readNotices = localStorage.getItem('readNotices')
   if (readNotices) {
@@ -518,13 +570,10 @@ onMounted(() => {
 const toggleFavorite = (app) => {
   const index = favorites.value.findIndex(fav => fav.name === app.name)
   if (index === -1) {
-    // 添加到收藏
     favorites.value.push(app)
   } else {
-    // 从收藏中移除
     favorites.value.splice(index, 1)
   }
-  // 保存到本地存储
   localStorage.setItem('favorites', JSON.stringify(favorites.value))
 }
 
@@ -538,27 +587,21 @@ const handleLogin = async () => {
   try {
     isLoggingIn.value = true
     loginError.value = ''
-    
-    // 调用后端API进行登录验证
+
     const response = await axios.post('/api/login', {
       username: loginForm.value.username,
       password: loginForm.value.password
     })
-    
-    // 登录成功
+
     currentUser.value = {
       id: response.data.id,
       username: response.data.username,
       role: response.data.role
     }
-    
-    // 保存用户信息到本地存储
+
     localStorage.setItem('currentUser', JSON.stringify(currentUser.value))
-    
-    // 关闭登录模态框
     showLoginModal.value = false
-    
-    // 重置表单
+
     loginForm.value = {
       username: '',
       password: ''
@@ -595,11 +638,10 @@ const openNoticeDetail = (notice) => {
 const markNoticeAsRead = () => {
   if (selectedNotice.value) {
     selectedNotice.value.read = true
-    
-    // 保存已读状态到本地存储
+
     const readNotices = localStorage.getItem('readNotices')
     let readIds = []
-    
+
     if (readNotices) {
       try {
         readIds = JSON.parse(readNotices)
@@ -607,21 +649,21 @@ const markNoticeAsRead = () => {
         readIds = []
       }
     }
-    
+
     if (!readIds.includes(selectedNotice.value.id)) {
       readIds.push(selectedNotice.value.id)
     }
-    
+
     localStorage.setItem('readNotices', JSON.stringify(readIds))
     showNoticeModal.value = false
   }
 }
 
-// 通知
+// 通知数据（更新为包含真实文件名）
 const notifications = [
-  { 
+  {
     id: 1,
-    title: '关于开展2025年度税收大数据分析工作的通知', 
+    title: '关于开展2025年度税收大数据分析工作的通知',
     time: '2025-05-05',
     author: '税务信息化管理中心',
     read: false,
@@ -637,13 +679,13 @@ const notifications = [
               <h4>三、工作要求</h4>
               <p>各单位要高度重视，加强组织领导，确保按时完成各项任务。</p>`,
     attachments: [
-      { name: '2025年度税收大数据分析工作方案.docx', url: '#', size: '2.3MB' },
-      { name: '税收大数据分析技术规范.pdf', url: '#', size: '1.5MB' }
+      { name: '2025年度税收大数据分析工作方案.docx', filename: '2025年度税收大数据分析工作方案.docx', size: '2.3MB' },
+      { name: '税收大数据分析技术规范.pdf', filename: '税收大数据分析技术规范.pdf', size: '1.5MB' }
     ]
   },
-  { 
+  {
     id: 2,
-    title: '智税平台V2.3版本更新说明', 
+    title: '智税平台V2.3版本更新说明',
     time: '2025-05-03',
     author: '税务信息化管理中心',
     read: false,
@@ -660,12 +702,12 @@ const notifications = [
               <h4>三、问题修复</h4>
               <p>修复了已知的10个系统bug，提升了系统稳定性。</p>`,
     attachments: [
-      { name: '智税平台V2.3版本详细说明.pdf', url: '#', size: '3.1MB' }
+      { name: '智税平台V2.3版本详细说明.pdf', filename: '智税平台V2.3版本详细说明.pdf', size: '3.1MB' }
     ]
   },
-  { 
+  {
     id: 3,
-    title: '关于加强税收风险管理的工作指引', 
+    title: '关于加强税收风险管理的工作指引',
     time: '2025-04-28',
     author: '风险管理司',
     read: false,
@@ -681,13 +723,13 @@ const notifications = [
               <h4>三、保障措施</h4>
               <p>加强组织领导，强化技术支撑，完善考核机制。</p>`,
     attachments: [
-      { name: '税收风险管理工作指引.pdf', url: '#', size: '2.7MB' },
-      { name: '风险指标体系说明.xlsx', url: '#', size: '1.2MB' }
+      { name: '税收风险管理工作指引.pdf', filename: '税收风险管理工作指引.pdf', size: '2.7MB' },
+      { name: '风险指标体系说明.xlsx', filename: '风险指标体系说明.xlsx', size: '1.2MB' }
     ]
   },
-  { 
+  {
     id: 4,
-    title: '第三季度税收数据分析报告已发布', 
+    title: '第三季度税收数据分析报告已发布',
     time: '2025-04-25',
     author: '税收科学研究所',
     read: false,
@@ -704,8 +746,8 @@ const notifications = [
               <h4>四、政策效应分析</h4>
               <p>减税降费政策效应持续显现，有效支持了实体经济发展。</p>`,
     attachments: [
-      { name: '2025年第三季度税收数据分析报告.pdf', url: '#', size: '4.5MB' },
-      { name: '季度税收数据表.xlsx', url: '#', size: '2.1MB' }
+      { name: '2025年第三季度税收数据分析报告.pdf', filename: '2025年第三季度税收数据分析报告.pdf', size: '4.5MB' },
+      { name: '季度税收数据表.xlsx', filename: '季度税收数据表.xlsx', size: '2.1MB' }
     ]
   }
 ]
@@ -726,9 +768,9 @@ const allApplications = [
 
 // 限制强基项目显示为2行4列
 const limitedAllApplications = computed(() => {
-  const appsPerRow = 4; // 每行显示4个应用
-  const maxRows = 2; // 最多显示2行
-  return allApplications.slice(0, appsPerRow * maxRows);
+  const appsPerRow = 4
+  const maxRows = 2
+  return allApplications.slice(0, appsPerRow * maxRows)
 })
 
 // 应用分类
@@ -750,7 +792,7 @@ watch(activeCategory, () => {
 })
 
 const currentPage = ref(1)
-const appsPerPage = 9 // 3行3列
+const appsPerPage = 9
 
 // 计算总页数
 const totalPages = computed(() => {
@@ -766,36 +808,36 @@ const paginatedApps = computed(() => {
 // 分页功能
 const prevPage = () => {
   if (currentPage.value > 1) {
-    currentPage.value--;
+    currentPage.value--
   }
 }
 
 const nextPage = () => {
   if (currentPage.value < totalPages.value) {
-    currentPage.value++;
+    currentPage.value++
   }
 }
 
 const goToPage = (page) => {
-  currentPage.value = page;
+  currentPage.value = page
 }
 
 // 显示的页码数
 const displayedPageNumbers = computed(() => {
-  const maxVisiblePages = 5;
-  let startPage = Math.max(1, currentPage.value - Math.floor(maxVisiblePages / 2));
-  let endPage = Math.min(totalPages.value, startPage + maxVisiblePages - 1);
-  
+  const maxVisiblePages = 5
+  let startPage = Math.max(1, currentPage.value - Math.floor(maxVisiblePages / 2))
+  let endPage = Math.min(totalPages.value, startPage + maxVisiblePages - 1)
+
   if (endPage - startPage + 1 < maxVisiblePages) {
-    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    startPage = Math.max(1, endPage - maxVisiblePages + 1)
   }
-  
-  const pages = [];
+
+  const pages = []
   for (let i = startPage; i <= endPage; i++) {
-    pages.push(i);
+    pages.push(i)
   }
-  
-  return pages;
+
+  return pages
 })
 
 // 所有应用
@@ -807,21 +849,21 @@ const allApps = [
   { name: '减免税管理', icon: Calculator, color: 'red', category: 'collection', description: '税收减免申请与审批', url: '#' },
   { name: '税费融合管理', icon: Scale, color: 'purple', category: 'collection', description: '税费一体化管理', url: '#' },
   { name: '定期定额管理', icon: Monitor, color: 'yellow', category: 'collection', description: '定期定额业务管理', url: '#' },
-  
+
   // 稽查管理
   { name: '稽查案件管理', icon: FileCheck, color: 'orange', category: 'inspection', description: '税务稽查案件管理', url: '#' },
   { name: '税收风险监控', icon: AlertCircle, color: 'red', category: 'inspection', description: '税收风险实时监控', url: '#' },
   { name: '稽查分析工具', icon: PieChart, color: 'purple', category: 'inspection', description: '稽查数据分析工具', url: '#' },
   { name: '案管系统', icon: Briefcase, color: 'cyan', category: 'inspection', description: '税务案件管理系统', url: '#' },
   { name: '跨区域协查', icon: Globe, color: 'teal', category: 'inspection', description: '跨区域稽查协作', url: '#' },
-  
+
   // 纳税服务
   { name: '纳税人服务平台', icon: Users, color: 'blue', category: 'service', description: '纳税人在线服务', url: '#' },
   { name: '税收政策咨询', icon: HelpCircle, color: 'green', category: 'service', description: '税收政策在线咨询', url: '#' },
   { name: '办税指南', icon: BookOpen, color: 'indigo', category: 'service', description: '办税流程与指南', url: '#' },
   { name: '税费服务诉求', icon: MessageSquare, color: 'purple', category: 'service', description: '税费服务与诉求处理', url: '#' },
   { name: '智能客服', icon: MessageSquare, color: 'pink', category: 'service', description: '智能问答服务', url: '#' },
-  
+
   // 数据分析
   { name: '税收数据分析', icon: BarChart, color: 'purple', category: 'analysis', description: '税收数据多维分析', url: '#' },
   { name: '税收预测模型', icon: TrendingUp, color: 'green', category: 'analysis', description: '税收趋势预测', url: '#' },
@@ -829,20 +871,20 @@ const allApps = [
   { name: '行业税负分析', icon: BarChart3, color: 'orange', category: 'analysis', description: '行业税负水平分析', url: '#' },
   { name: '智税展示', icon: Presentation, color: 'green', category: 'analysis', description: '税务数据可视化展示', url: '#' },
   { name: '指标全生命周期管理', icon: LifeBuoy, color: 'blue', category: 'analysis', description: '指标管理与监控平台', url: '#' },
-  
+
   // 风险管理
   { name: '风险识别系统', icon: AlertCircle, color: 'red', category: 'risk', description: '税收风险智能识别', url: '#' },
   { name: '纳税人信用评级', icon: Users, color: 'blue', category: 'risk', description: '纳税人信用等级评定', url: '#' },
   { name: '风险应对策略', icon: FileCheck, color: 'green', category: 'risk', description: '税收风险应对策略', url: '#' },
   { name: '慧眼', icon: Eye, color: 'red', category: 'risk', description: '税务风险智能监控', url: '#' },
   { name: '大数据风控', icon: Database, color: 'indigo', category: 'risk', description: '大数据风险控制', url: '#' },
-  
+
   // 政策法规
   { name: '税收法规库', icon: BookOpen, color: 'indigo', category: 'policy', description: '税收法律法规查询', url: '#' },
-  { name: '政策解读平台', icon: FileText, color: 'purple', category: 'policy', description: '税收政策专业解读', url: '#' },
-  { name: '税收案例库', icon: Landmark, color: 'blue', category: 'policy', description: '典型税收案例分析', url: '#' },
-  { name: '政策执行指南', icon: FileCheck, color: 'green', category: 'policy', description: '政策执行操作指南', url: '#' },
-  { name: '税收条约库', icon: Globe, color: 'teal', category: 'policy', description: '国际税收条约查询', url: '#' }
+  { name: '政策解读平台', icon: FileText, color: 'purple', description: '税收政策专业解读', url: '#' },
+  { name: '税收案例库', icon: Landmark, color: 'blue', description: '典型税收案例分析', url: '#' },
+  { name: '政策执行指南', icon: FileCheck, color: 'green', description: '政策执行操作指南', url: '#' },
+  { name: '税收条约库', icon: Globe, color: 'teal', description: '国际税收条约查询', url: '#' }
 ]
 
 // 根据分类筛选应用
@@ -856,7 +898,6 @@ const filteredApps = computed(() => {
 </script>
 
 <style scoped>
-/* 可以添加额外的样式，但大部分已通过Tailwind类实现 */
 .tax-center-app {
   font-family: 'PingFang SC', 'Helvetica Neue', 'Microsoft YaHei', sans-serif;
 }
