@@ -45,11 +45,11 @@
               <div class="flex items-start justify-between">
                 <div class="flex-1">
                   <div class="flex items-center mb-2">
-                    <div :class="[
+                    <!-- <div :class="[
                       'h-2 w-2 rounded-full mr-3',
                       notice.read ? 'bg-gray-300' : 'bg-blue-500'
                     ]">
-                    </div>
+                    </div> -->
                     <h3 class="text-lg font-medium text-gray-900">{{ notice.title }}</h3>
                   </div>
                   <div class="flex items-center text-sm text-gray-500 mb-2">
@@ -158,12 +158,12 @@
           </div>
         </div>
         <div class="flex justify-end">
-          <button
+          <!-- <button
               @click="markNoticeAsRead"
               class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             标记为已读
-          </button>
+          </button> -->
         </div>
       </div>
     </div>
@@ -198,7 +198,7 @@ import { downloadFile } from '../api/fileService'
 const showNoticeModal = ref(false)
 const selectedNotice = ref(null)
 const currentPage = ref(1)
-const noticesPerPage = 20
+const noticesPerPage = 10
 
 // 下载状态跟踪
 const downloadingFiles = ref([])
@@ -346,12 +346,12 @@ const openNoticeDetail = (notice) => {
   showNoticeModal.value = true
 }
 
-const markNoticeAsRead = () => {
-  if (selectedNotice.value) {
-    selectedNotice.value.read = true
-    showNoticeModal.value = false
-  }
-}
+// const markNoticeAsRead = () => {
+//   if (selectedNotice.value) {
+//     selectedNotice.value.read = ff
+//     showNoticeModal.value = false
+//   }
+// }
 
 const getNoticePreview = (content) => {
   const text = content.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()

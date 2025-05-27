@@ -45,6 +45,149 @@
         </form>
       </div>
     </div>
+    <!-- 搜索结果模态框 -->
+    <div v-if="showSearchModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-bold text-gray-900">
+            搜索结果 
+            <span v-if="searchResults.length > 0" class="text-sm text-gray-500 font-normal">
+              (共找到 {{ searchResults.length }} 个应用)
+            </span>
+          </h2>
+          <button @click="closeSearchModal" class="text-gray-500 hover:text-gray-700">
+            <X class="h-5 w-5" />
+          </button>
+        </div>
+        
+        <!-- 搜索框 -->
+        <div class="relative mb-6">
+          <input
+            ref="searchModalInput"
+            v-model="searchQuery"
+            type="text"
+            placeholder="搜索应用..."
+            class="w-full bg-gray-100 rounded-full py-3 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+            @input="handleSearch"
+            @keydown.esc="closeSearchModal"
+          />
+          <div class="absolute left-4 top-3.5">
+            <Search class="h-5 w-5 text-gray-400" />
+          </div>
+          <button 
+            v-if="searchQuery"
+            @click="clearSearch"
+            class="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600"
+          >
+            <X class="h-4 w-4" />
+          </button>
+        </div>
+
+        <!-- 搜索建议 -->
+        <div v-if="searchSuggestions.length > 0 && searchQuery" class="mb-4">
+          <h3 class="text-sm font-medium text-gray-700 mb-2">搜索建议</h3>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="suggestion in searchSuggestions"
+              :key="suggestion"
+              @click="searchQuery = suggestion"
+              class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
+            >
+              {{ suggestion }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 搜索历史 -->
+        <div v-if="searchHistory.length > 0 && !searchQuery" class="mb-4">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="text-sm font-medium text-gray-700">搜索历史</h3>
+            <button 
+              @click="clearSearchHistory"
+              class="text-xs text-gray-500 hover:text-gray-700"
+            >
+              清除历史
+            </button>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="(history, index) in searchHistory"
+              :key="index"
+              @click="searchQuery = history"
+              class="flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+            >
+              <Clock class="h-3 w-3 mr-1" />
+              {{ history }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 搜索结果 -->
+        <div v-if="searchQuery && searchResults.length > 0">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div
+              v-for="(app, index) in searchResults"
+              :key="index"
+              class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer relative"
+            >
+              <a :href="app.url || '#'" :target="app.url ? '_blank' : ''" class="block no-underline">
+                <div class="flex items-start">
+                  <div :class="`bg-${app.color}-100 p-2 rounded-lg`">
+                    <component :is="app.icon" class="h-5 w-5" :class="`text-${app.color}-600`" />
+                  </div>
+                  <div class="ml-3 flex-1">
+                    <h3 class="font-medium text-gray-900" v-html="highlightSearchTerm(app.name)"></h3>
+                    <p class="text-xs text-gray-500 mt-1" v-html="highlightSearchTerm(app.description)"></p>
+                    <div class="flex items-center mt-2 text-xs text-gray-400">
+                      <span class="bg-gray-100 px-2 py-1 rounded">{{ getCategoryName(app.category) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </a>
+              <button 
+                @click.stop="toggleFavorite(app)"
+                class="absolute top-2 right-2 text-gray-400 hover:text-yellow-500 focus:outline-none"
+                :class="{ 'text-yellow-500': isFavorite(app) }"
+              >
+                <Star class="h-4 w-4" :fill="isFavorite(app) ? 'currentColor' : 'none'" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 无搜索结果 -->
+        <div v-else-if="searchQuery && searchResults.length === 0" class="text-center py-8">
+          <div class="text-gray-400 mb-2">
+            <Search class="h-12 w-12 mx-auto" />
+          </div>
+          <p class="text-gray-500">未找到相关应用</p>
+          <p class="text-sm text-gray-400 mt-1">尝试使用其他关键词搜索</p>
+        </div>
+
+        <!-- 热门应用推荐 -->
+        <div v-if="!searchQuery" class="mt-6">
+          <h3 class="text-sm font-medium text-gray-700 mb-3">热门应用</h3>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            <div
+              v-for="(app, index) in popularApps"
+              :key="index"
+              class="border border-gray-200 rounded-lg p-3 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer relative"
+            >
+              <a :href="app.url || '#'" :target="app.url ? '_blank' : ''" class="block no-underline">
+                <div class="flex items-center">
+                  <div :class="`bg-${app.color}-100 p-2 rounded-lg`">
+                    <component :is="app.icon" class="h-4 w-4" :class="`text-${app.color}-600`" />
+                  </div>
+                  <div class="ml-2">
+                    <h3 class="font-medium text-gray-900 text-sm">{{ app.name }}</h3>
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 查看全部功能模态框 -->
     <div v-if="showAllAppsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -129,12 +272,12 @@
           </div>
         </div>
         <div class="flex justify-end">
-          <button
+          <!-- <button
               @click="markNoticeAsRead"
               class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             标记为已读
-          </button>
+          </button> -->
         </div>
       </div>
     </div>
@@ -152,38 +295,65 @@
             </div>
           </div>
           <div class="flex items-center">
+            <!-- 搜索框 -->
             <div class="relative">
               <input
-                  v-model="searchQuery"
-                  type="text"
-                  placeholder="搜索应用..."
-                  class="bg-gray-100 rounded-full py-2 pl-10 pr-4 w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+                v-model="searchQuery"
+                type="text"
+                placeholder="搜索应用..."
+                class="bg-gray-100 rounded-full py-2 pl-10 pr-4 w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+                @input="handleSearch"
+                @focus="openSearchModal"
+                @keydown.enter="performSearch"
+                @keydown.down.prevent="navigateSearchSuggestions(1)"
+                @keydown.up.prevent="navigateSearchSuggestions(-1)"
               />
               <div class="absolute left-3 top-2.5">
                 <Search class="h-5 w-5 text-gray-400" />
               </div>
+              
+              <!-- 搜索建议下拉框
+              <div 
+                v-if="showSearchSuggestions && searchSuggestions.length > 0"
+                class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto"
+              >
+                <div
+                  v-for="(suggestion, index) in searchSuggestions"
+                  :key="index"
+                  @click="selectSuggestion(suggestion)"
+                  :class="[
+                    'px-4 py-2 cursor-pointer flex items-center',
+                    index === selectedSuggestionIndex ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'
+                  ]"
+                >
+                  <Search class="h-4 w-4 mr-2 text-gray-400" />
+                  <span v-html="highlightSearchTerm(suggestion)"></span>
+                </div>
+              </div> -->
             </div>
+            
             <div class="ml-4 flex items-center">
+              <!-- 用户头像和下拉菜单 -->
               <div class="ml-4 relative">
                 <div v-if="currentUser" class="flex items-center cursor-pointer" @click="toggleUserMenu">
                   <img
-                      class="h-8 w-8 rounded-full"
-                      src="/images/1.jpg"
-                      alt="用户头像"
+                    class="h-8 w-8 rounded-full"
+                    src="/images/1.jpg"
+                    alt="用户头像"
                   />
                   <span class="ml-2 text-sm font-medium text-gray-700 hidden md:block">{{ currentUser.username }}</span>
                   <ChevronDown class="ml-1 h-4 w-4 text-gray-500" />
                 </div>
-                <button
-                    v-else
-                    @click="showLoginModal = true"
-                    class="ml-2 px-4 py-1 text-sm font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50"
+                <button 
+                  v-else 
+                  @click="showLoginModal = true"
+                  class="ml-2 px-4 py-1 text-sm font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50"
                 >
                   登录
                 </button>
                 <div
-                    v-if="showUserMenu && currentUser"
-                    class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10"
+                  v-if="showUserMenu && currentUser"
+                  class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10"
                 >
                   <div class="py-1">
                     <a @click="handleLogout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">退出登录</a>
@@ -216,10 +386,10 @@
               >
                 <div class="flex items-start">
                   <div class="flex-shrink-0 mt-0.5">
-                    <div :class="[
+                    <!-- <div :class="[
                       'h-2 w-2 rounded-full',
                       notice.read ? 'bg-gray-300' : 'bg-blue-500'
-                    ]"></div>
+                    ]"></div> -->
                   </div>
                   <div class="ml-2 flex-1">
                     <div class="text-sm font-medium text-gray-700">{{ notice.title }}</div>
@@ -421,7 +591,7 @@
 <script setup>
 import { useRouter } from 'vue-router'
 const router = useRouter()
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import {
   BarChart3,
   Search,
@@ -456,7 +626,8 @@ import {
   Scale,
   Calendar,
   User,
-  Download
+  Download,
+  Clock
 } from 'lucide-vue-next'
 import axios from 'axios'
 import { downloadFile } from '../api/fileService'
@@ -471,6 +642,16 @@ const loginForm = ref({
 const loginError = ref('')
 const isLoggingIn = ref(false)
 const showUserMenu = ref(false)
+
+// 搜索相关状态
+const searchQuery = ref('')
+const searchResults = ref([])
+const searchHistory = ref([])
+const searchSuggestions = ref([])
+const showSearchModal = ref(false)
+const showSearchSuggestions = ref(false)
+const selectedSuggestionIndex = ref(-1)
+const searchModalInput = ref(null)
 
 // 查看全部功能模态框
 const showAllAppsModal = ref(false)
@@ -539,7 +720,7 @@ onMounted(() => {
       localStorage.removeItem('currentUser')
     }
   }
-
+  
   // 加载收藏夹
   const savedFavorites = localStorage.getItem('favorites')
   if (savedFavorites) {
@@ -549,7 +730,17 @@ onMounted(() => {
       localStorage.removeItem('favorites')
     }
   }
-
+  
+  // 加载搜索历史
+  const savedSearchHistory = localStorage.getItem('searchHistory')
+  if (savedSearchHistory) {
+    try {
+      searchHistory.value = JSON.parse(savedSearchHistory)
+    } catch (e) {
+      localStorage.removeItem('searchHistory')
+    }
+  }
+  
   // 加载公告已读状态
   const readNotices = localStorage.getItem('readNotices')
   if (readNotices) {
@@ -564,7 +755,171 @@ onMounted(() => {
       localStorage.removeItem('readNotices')
     }
   }
+
+  // 点击外部关闭搜索建议
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.relative')) {
+      showSearchSuggestions.value = false
+    }
+  })
 })
+
+
+
+
+
+// 搜索功能
+const handleSearch = () => {
+  if (!searchQuery.value.trim()) {
+    searchResults.value = []
+    searchSuggestions.value = []
+    showSearchSuggestions.value = false
+    return
+  }
+
+  // 实时搜索
+  performSearch()
+  
+  // 生成搜索建议
+  generateSearchSuggestions()
+  showSearchSuggestions.value = true
+}
+
+const performSearch = () => {
+  const query = searchQuery.value.toLowerCase().trim()
+  if (!query) {
+    searchResults.value = []
+    return
+  }
+
+  // 搜索所有应用
+  searchResults.value = allApps.filter(app => {
+    return app.name.toLowerCase().includes(query) ||
+           app.description.toLowerCase().includes(query) ||
+           getCategoryName(app.category).toLowerCase().includes(query)
+  })
+
+  // 添加到搜索历史
+  addToSearchHistory(searchQuery.value)
+}
+
+const generateSearchSuggestions = () => {
+  const query = searchQuery.value.toLowerCase().trim()
+  if (!query) {
+    searchSuggestions.value = []
+    return
+  }
+
+  const suggestions = new Set()
+  
+  // 从应用名称生成建议
+  allApps.forEach(app => {
+    if (app.name.toLowerCase().includes(query)) {
+      suggestions.add(app.name)
+    }
+    // 从描述中提取关键词
+    const words = app.description.split(/\s+/)
+    words.forEach(word => {
+      if (word.toLowerCase().includes(query) && word.length > 1) {
+        suggestions.add(word)
+      }
+    })
+  })
+
+  // 从搜索历史生成建议
+  searchHistory.value.forEach(history => {
+    if (history.toLowerCase().includes(query)) {
+      suggestions.add(history)
+    }
+  })
+
+  searchSuggestions.value = Array.from(suggestions).slice(0, 8)
+}
+
+const addToSearchHistory = (query) => {
+  if (!query.trim()) return
+  
+  // 移除重复项
+  const index = searchHistory.value.indexOf(query)
+  if (index > -1) {
+    searchHistory.value.splice(index, 1)
+  }
+  
+  // 添加到开头
+  searchHistory.value.unshift(query)
+  
+  // 限制历史记录数量
+  if (searchHistory.value.length > 10) {
+    searchHistory.value = searchHistory.value.slice(0, 10)
+  }
+  
+  // 保存到本地存储
+  localStorage.setItem('searchHistory', JSON.stringify(searchHistory.value))
+}
+
+const clearSearchHistory = () => {
+  searchHistory.value = []
+  localStorage.removeItem('searchHistory')
+}
+
+const clearSearch = () => {
+  searchQuery.value = ''
+  searchResults.value = []
+  searchSuggestions.value = []
+  showSearchSuggestions.value = false
+}
+
+const openSearchModal = () => {
+  showSearchModal.value = true
+  nextTick(() => {
+    if (searchModalInput.value) {
+      searchModalInput.value.focus()
+    }
+  })
+}
+
+const closeSearchModal = () => {
+  showSearchModal.value = false
+  showSearchSuggestions.value = false
+}
+
+// const selectSuggestion = (suggestion) => {
+//   searchQuery.value = suggestion
+//   showSearchSuggestions.value = false
+//   performSearch()
+// }
+
+const navigateSearchSuggestions = (direction) => {
+  if (searchSuggestions.value.length === 0) return
+  
+  selectedSuggestionIndex.value += direction
+  
+  if (selectedSuggestionIndex.value < 0) {
+    selectedSuggestionIndex.value = searchSuggestions.value.length - 1
+  } else if (selectedSuggestionIndex.value >= searchSuggestions.value.length) {
+    selectedSuggestionIndex.value = 0
+  }
+  
+  searchQuery.value = searchSuggestions.value[selectedSuggestionIndex.value]
+}
+
+const highlightSearchTerm = (text) => {
+  if (!searchQuery.value.trim()) return text
+  
+  const regex = new RegExp(`(${searchQuery.value})`, 'gi')
+  return text.replace(regex, '<mark class="bg-yellow-200 px-1 rounded">$1</mark>')
+}
+
+// 热门应用（基于使用频率或推荐）
+const popularApps = computed(() => {
+  return allApps.slice(0, 8) // 取前8个作为热门应用
+})
+// 获取分类名称
+const getCategoryName = (categoryId) => {
+  const category = categories.find(cat => cat.id === categoryId)
+  return category ? category.name : '其他'
+}
+
 
 // 收藏功能
 const toggleFavorite = (app) => {
@@ -588,7 +943,7 @@ const handleLogin = async () => {
     isLoggingIn.value = true
     loginError.value = ''
 
-    const response = await axios.post('/api/login', {
+    const response = await axios.post('http://localhost:8081/api/login', {
       username: loginForm.value.username,
       password: loginForm.value.password
     })
@@ -626,8 +981,8 @@ const toggleUserMenu = () => {
   showUserMenu.value = !showUserMenu.value
 }
 
-// 搜索
-const searchQuery = ref('')
+// // 搜索
+// const searchQuery = ref('')
 
 // 公告功能
 const openNoticeDetail = (notice) => {
@@ -635,29 +990,6 @@ const openNoticeDetail = (notice) => {
   showNoticeModal.value = true
 }
 
-const markNoticeAsRead = () => {
-  if (selectedNotice.value) {
-    selectedNotice.value.read = true
-
-    const readNotices = localStorage.getItem('readNotices')
-    let readIds = []
-
-    if (readNotices) {
-      try {
-        readIds = JSON.parse(readNotices)
-      } catch (e) {
-        readIds = []
-      }
-    }
-
-    if (!readIds.includes(selectedNotice.value.id)) {
-      readIds.push(selectedNotice.value.id)
-    }
-
-    localStorage.setItem('readNotices', JSON.stringify(readIds))
-    showNoticeModal.value = false
-  }
-}
 
 // 通知数据（更新为包含真实文件名）
 const notifications = [
