@@ -42,7 +42,7 @@ app.post("/api/login", async (req, res) => {
     connection = await oracledb.getConnection(dbConfig)
 
     // MD5加密用户输入的密码
-    const hashedPassword = md5Hash(password)
+    const hashedPassword = md5Hash(password).toUpperCase()
 
     console.log("尝试登录:", { username, hashedPassword })
 
