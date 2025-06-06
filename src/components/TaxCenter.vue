@@ -20,7 +20,7 @@
                 type="text"
                 id="username"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="请输入用户名"
+                placeholder="请输入税务人员代码"
                 required
             />
           </div>
@@ -45,8 +45,9 @@
         </form>
       </div>
     </div>
+
     <!-- 搜索结果模态框 -->
-    <div v-if="showSearchModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div v-if="showSearchModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
       <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-bold text-gray-900">
@@ -113,7 +114,7 @@
             <button
               v-for="(history, index) in searchHistory"
               :key="index"
-              @click="searchQuery = history"
+              @click="selectSearchHistory(history)"
               class="flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
             >
               <Clock class="h-3 w-3 mr-1" />
@@ -130,7 +131,7 @@
               :key="index"
               class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer relative"
             >
-              <a :href="app.url || '#'" :target="app.url ? '_blank' : ''" class="block no-underline">
+              <a @click="handleAppClick(app, $event)" :href="app.url || '#'" :target="app.url ? '_blank' : ''" class="block no-underline">
                 <div class="flex items-start">
                   <div :class="`bg-${app.color}-100 p-2 rounded-lg`">
                     <component :is="app.icon" class="h-5 w-5" :class="`text-${app.color}-600`" />
@@ -145,9 +146,13 @@
                 </div>
               </a>
               <button 
-                @click.stop="toggleFavorite(app)"
-                class="absolute top-2 right-2 text-gray-400 hover:text-yellow-500 focus:outline-none"
-                :class="{ 'text-yellow-500': isFavorite(app) }"
+                @click.stop="debouncedToggleFavorite(app)"
+                class="absolute top-2 right-2 text-gray-400 hover:text-yellow-500 focus:outline-none transition-colors"
+                :class="{ 
+                  'text-yellow-500': isFavorite(app),
+                  'opacity-50 cursor-not-allowed': isFavoriteOperationPending(app.name)
+                }"
+                :disabled="isFavoriteOperationPending(app.name)"
               >
                 <Star class="h-4 w-4" :fill="isFavorite(app) ? 'currentColor' : 'none'" />
               </button>
@@ -173,7 +178,7 @@
               :key="index"
               class="border border-gray-200 rounded-lg p-3 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer relative"
             >
-              <a :href="app.url || '#'" :target="app.url ? '_blank' : ''" class="block no-underline">
+              <a @click="handleAppClick(app, $event)" :href="app.url || '#'" :target="app.url ? '_blank' : ''" class="block no-underline">
                 <div class="flex items-center">
                   <div :class="`bg-${app.color}-100 p-2 rounded-lg`">
                     <component :is="app.icon" class="h-4 w-4" :class="`text-${app.color}-600`" />
@@ -190,7 +195,7 @@
     </div>
 
     <!-- 查看全部功能模态框 -->
-    <div v-if="showAllAppsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div v-if="showAllAppsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
       <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-5xl max-h-[80vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-bold text-gray-900">全部功能</h2>
@@ -205,7 +210,7 @@
               :key="index"
               class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer relative"
           >
-            <a :href="app.url || '#'" :target="app.url ? '_blank' : ''" class="block no-underline">
+            <a @click="handleAppClick(app, $event)" :href="app.url || '#'" :target="app.url ? '_blank' : ''" class="block no-underline">
               <div class="flex items-start">
                 <div :class="`bg-${app.color}-100 p-2 rounded-lg`">
                   <component :is="app.icon" class="h-5 w-5" :class="`text-${app.color}-600`" />
@@ -217,9 +222,13 @@
               </div>
             </a>
             <button
-                @click.stop="toggleFavorite(app)"
-                class="absolute top-2 right-2 text-gray-400 hover:text-yellow-500 focus:outline-none"
-                :class="{ 'text-yellow-500': isFavorite(app) }"
+                @click.stop="debouncedToggleFavorite(app)"
+                class="absolute top-2 right-2 text-gray-400 hover:text-yellow-500 focus:outline-none transition-colors"
+                :class="{ 
+                  'text-yellow-500': isFavorite(app),
+                  'opacity-50 cursor-not-allowed': isFavoriteOperationPending(app.name)
+                }"
+                :disabled="isFavoriteOperationPending(app.name)"
             >
               <Star class="h-4 w-4" :fill="isFavorite(app) ? 'currentColor' : 'none'" />
             </button>
@@ -229,7 +238,7 @@
     </div>
 
     <!-- 公告详情模态框 -->
-    <div v-if="showNoticeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div v-if="showNoticeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
       <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-bold text-gray-900">公告详情</h2>
@@ -271,14 +280,6 @@
             </div>
           </div>
         </div>
-        <div class="flex justify-end">
-          <!-- <button
-              @click="markNoticeAsRead"
-              class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            标记为已读
-          </button> -->
-        </div>
       </div>
     </div>
 
@@ -311,25 +312,6 @@
               <div class="absolute left-3 top-2.5">
                 <Search class="h-5 w-5 text-gray-400" />
               </div>
-              
-              <!-- 搜索建议下拉框
-              <div 
-                v-if="showSearchSuggestions && searchSuggestions.length > 0"
-                class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto"
-              >
-                <div
-                  v-for="(suggestion, index) in searchSuggestions"
-                  :key="index"
-                  @click="selectSuggestion(suggestion)"
-                  :class="[
-                    'px-4 py-2 cursor-pointer flex items-center',
-                    index === selectedSuggestionIndex ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'
-                  ]"
-                >
-                  <Search class="h-4 w-4 mr-2 text-gray-400" />
-                  <span v-html="highlightSearchTerm(suggestion)"></span>
-                </div>
-              </div> -->
             </div>
             
             <div class="ml-4 flex items-center">
@@ -386,10 +368,6 @@
               >
                 <div class="flex items-start">
                   <div class="flex-shrink-0 mt-0.5">
-                    <!-- <div :class="[
-                      'h-2 w-2 rounded-full',
-                      notice.read ? 'bg-gray-300' : 'bg-blue-500'
-                    ]"></div> -->
                   </div>
                   <div class="ml-2 flex-1">
                     <div class="text-sm font-medium text-gray-700">{{ notice.title }}</div>
@@ -402,22 +380,45 @@
 
           <!-- 收藏夹 -->
           <div class="bg-white rounded-lg shadow p-4">
-            <h3 class="text-lg font-medium text-gray-900 mb-3">收藏夹</h3>
-            <ul class="space-y-2">
+            <div class="flex justify-between items-center mb-3">
+              <h3 class="text-lg font-medium text-gray-900">收藏夹</h3>
+              <div class="flex items-center space-x-2">
+                <!-- <span v-if="favorites.length > 0" class="text-xs text-gray-500">{{ favorites.length }}个</span> -->
+                <button 
+                  v-if="currentUser && favorites.length > 0"
+                  @click="loadUserFavorites"
+                  :disabled="favoritesLoading"
+                  class="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                >
+                  {{ favoritesLoading ? '同步中...' : '刷新' }}
+                </button>
+              </div>
+            </div>
+            
+            <div v-if="favoritesLoading" class="text-center py-4">
+              <div class="inline-flex items-center">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                <span class="text-sm text-gray-500">加载中...</span>
+              </div>
+            </div>
+            
+            <ul v-else class="space-y-2">
               <li v-for="(app, index) in favorites" :key="index" class="relative">
-                <a :href="app.url || '#'" :target="app.url ? '_blank' : ''" class="flex items-center text-gray-600 hover:text-blue-600 py-1.5 pr-8">
+                <a @click="handleAppClick(app, $event)" :href="app.url || '#'" :target="app.url ? '_blank' : ''" class="flex items-center text-gray-600 hover:text-blue-600 py-1.5 pr-8">
                   <component :is="app.icon" class="h-5 w-5 mr-2" :class="`text-${app.color}-600`" />
-                  <span>{{ app.name }}</span>
+                  <span class="text-sm">{{ app.name }}</span>
                 </a>
                 <button
-                    @click.stop="toggleFavorite(app)"
-                    class="absolute top-2 right-2 text-yellow-500 hover:text-yellow-600 focus:outline-none"
+                    @click.stop="debouncedToggleFavorite(app)"
+                    class="absolute top-2 right-2 text-yellow-500 hover:text-yellow-600 focus:outline-none transition-colors"
+                    :class="{ 'opacity-50 cursor-not-allowed': isFavoriteOperationPending(app.name) }"
+                    :disabled="isFavoriteOperationPending(app.name)"
                 >
                   <Star class="h-4 w-4" fill="currentColor" />
                 </button>
               </li>
               <li v-if="favorites.length === 0" class="text-sm text-gray-500 italic py-2">
-                暂无收藏，点击应用右下角星标添加
+                {{ currentUser ? '暂无收藏，点击应用右下角星标添加' : '请先登录查看收藏夹' }}
               </li>
             </ul>
           </div>
@@ -459,7 +460,7 @@
                   :key="index"
                   class="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow cursor-pointer relative"
               >
-                <a :href="app.url || '#'" :target="app.url ? '_blank' : ''" class="block no-underline">
+                <a @click="handleAppClick(app, $event)" :href="app.url || '#'" :target="app.url ? '_blank' : ''" class="block no-underline">
                   <div class="flex flex-col items-center">
                     <div :class="`bg-${app.color}-100 p-3 rounded-lg mb-3`">
                       <component :is="app.icon" class="h-6 w-6" :class="`text-${app.color}-600`" />
@@ -471,9 +472,13 @@
                   </div>
                 </a>
                 <button
-                    @click.stop="toggleFavorite(app)"
-                    class="absolute top-2 right-2 text-gray-400 hover:text-yellow-500 focus:outline-none"
-                    :class="{ 'text-yellow-500': isFavorite(app) }"
+                    @click.stop="debouncedToggleFavorite(app)"
+                    class="absolute top-2 right-2 text-gray-400 hover:text-yellow-500 focus:outline-none transition-colors"
+                    :class="{ 
+                      'text-yellow-500': isFavorite(app),
+                      'opacity-50 cursor-not-allowed': isFavoriteOperationPending(app.name)
+                    }"
+                    :disabled="isFavoriteOperationPending(app.name)"
                 >
                   <Star class="h-4 w-4" :fill="isFavorite(app) ? 'currentColor' : 'none'" />
                 </button>
@@ -513,7 +518,7 @@
                       :key="index"
                       class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer relative"
                   >
-                    <a :href="app.url || '#'" :target="app.url ? '_blank' : ''" class="block no-underline">
+                    <a @click="handleAppClick(app, $event)" :href="app.url || '#'" :target="app.url ? '_blank' : ''" class="block no-underline">
                       <div class="flex items-start">
                         <div :class="`bg-${app.color}-100 p-2 rounded-lg`">
                           <component :is="app.icon" class="h-5 w-5" :class="`text-${app.color}-600`" />
@@ -525,9 +530,13 @@
                       </div>
                     </a>
                     <button
-                        @click.stop="toggleFavorite(app)"
-                        class="absolute top-2 right-2 text-gray-400 hover:text-yellow-500 focus:outline-none"
-                        :class="{ 'text-yellow-500': isFavorite(app) }"
+                        @click.stop="debouncedToggleFavorite(app)"
+                        class="absolute top-2 right-2 text-gray-400 hover:text-yellow-500 focus:outline-none transition-colors"
+                        :class="{ 
+                          'text-yellow-500': isFavorite(app),
+                          'opacity-50 cursor-not-allowed': isFavoriteOperationPending(app.name)
+                        }"
+                        :disabled="isFavoriteOperationPending(app.name)"
                     >
                       <Star class="h-4 w-4" :fill="isFavorite(app) ? 'currentColor' : 'none'" />
                     </button>
@@ -656,8 +665,10 @@ const searchModalInput = ref(null)
 // 查看全部功能模态框
 const showAllAppsModal = ref(false)
 
-// 收藏夹
+// 收藏夹相关状态
 const favorites = ref([])
+const favoritesLoading = ref(false)
+const favoriteOperationsPending = ref(new Set()) // 跟踪正在进行的收藏操作
 
 // 公告详情模态框
 const showNoticeModal = ref(false)
@@ -666,22 +677,39 @@ const selectedNotice = ref(null)
 // 下载状态跟踪
 const downloadingFiles = ref([])
 
+// 防抖函数
+function debounce(func, wait) {
+  let timeout
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout)
+      func(...args)
+    }
+    clearTimeout(timeout)
+    timeout = setTimeout(later, wait)
+  }
+}
+
+// 检查收藏操作是否正在进行
+const isFavoriteOperationPending = (appName) => {
+  return favoriteOperationsPending.value.has(appName)
+}
+
+// 防抖的收藏切换函数
+const debouncedToggleFavorite = debounce(async (app) => {
+  await toggleFavorite(app)
+}, 300)
+
 // 附件下载功能
 const downloadAttachment = async (attachment) => {
   try {
-    // 添加到下载中列表
     downloadingFiles.value.push(attachment.filename)
-
-    // 调用文件服务下载文件
     await downloadFile(attachment.filename, attachment.name)
-
-    // 显示下载成功提示
     showToast(`文件 "${attachment.name}" 下载成功！`, 'success')
   } catch (error) {
     console.error('下载失败:', error)
     showToast(`文件 "${attachment.name}" 下载失败：${error.message}`, 'error')
   } finally {
-    // 从下载中列表移除
     const index = downloadingFiles.value.indexOf(attachment.filename)
     if (index > -1) {
       downloadingFiles.value.splice(index, 1)
@@ -692,7 +720,9 @@ const downloadAttachment = async (attachment) => {
 // 显示提示消息
 const showToast = (message, type = 'info') => {
   const toast = document.createElement('div')
-  const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+  const bgColor = type === 'success' ? 'bg-green-500' : 
+                  type === 'error' ? 'bg-red-500' : 
+                  type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
   toast.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-2 rounded-md shadow-lg z-50 transition-opacity duration-300`
   toast.textContent = message
   document.body.appendChild(toast)
@@ -709,6 +739,159 @@ const showToast = (message, type = 'info') => {
   }, 3000)
 }
 
+// 加载用户收藏夹
+const loadUserFavorites = async () => {
+  if (!currentUser.value) {
+    favorites.value = []
+    return
+  }
+
+  try {
+    favoritesLoading.value = true
+    const response = await axios.get(`http://localhost:8081/api/favorites/${currentUser.value.username}`)
+
+    if (response.data.success) {
+      // 将字符串图标名转换为实际的图标组件
+      favorites.value = response.data.favorites.map(fav => ({
+        ...fav,
+        icon: getIconComponent(fav.icon)
+      }))
+    }
+  } catch (error) {
+    console.error('加载收藏夹失败:', error)
+    if (error.response?.status === 429) {
+      showToast('请求过于频繁，请稍后再试', 'warning')
+    } else {
+      showToast('加载收藏夹失败', 'error')
+    }
+  } finally {
+    favoritesLoading.value = false
+  }
+}
+
+// 根据图标名称获取图标组件
+const getIconComponent = (iconName) => {
+  const iconMap = {
+    'LifeBuoy': LifeBuoy,
+    'Presentation': Presentation,
+    'MessageSquare': MessageSquare,
+    'CreditCard': CreditCard,
+    'Eye': Eye,
+    'UserCog': UserCog,
+    'Monitor': Monitor,
+    'Flag': Flag,
+    'Globe': Globe,
+    'Briefcase': Briefcase,
+    'FileText': FileText,
+    'Receipt': Receipt,
+    'Calculator': Calculator,
+    'Scale': Scale,
+    'FileCheck': FileCheck,
+    'AlertCircle': AlertCircle,
+    'PieChart': PieChart,
+    'Users': Users,
+    'BookOpen': BookOpen,
+    'HelpCircle': HelpCircle,
+    'BarChart': BarChart,
+    'TrendingUp': TrendingUp,
+    'BarChart3': BarChart3,
+    'Database': Database,
+    'Landmark': Landmark
+  }
+  return iconMap[iconName] || FileText
+}
+
+// 获取图标名称（用于存储到数据库）
+const getIconName = (iconComponent) => {
+  const iconMap = {
+    [LifeBuoy]: 'LifeBuoy',
+    [Presentation]: 'Presentation',
+    [MessageSquare]: 'MessageSquare',
+    [CreditCard]: 'CreditCard',
+    [Eye]: 'Eye',
+    [UserCog]: 'UserCog',
+    [Monitor]: 'Monitor',
+    [Flag]: 'Flag',
+    [Globe]: 'Globe',
+    [Briefcase]: 'Briefcase',
+    [FileText]: 'FileText',
+    [Receipt]: 'Receipt',
+    [Calculator]: 'Calculator',
+    [Scale]: 'Scale',
+    [FileCheck]: 'FileCheck',
+    [AlertCircle]: 'AlertCircle',
+    [PieChart]: 'PieChart',
+    [Users]: 'Users',
+    [BookOpen]: 'BookOpen',
+    [HelpCircle]: 'HelpCircle',
+    [BarChart]: 'BarChart',
+    [TrendingUp]: 'TrendingUp',
+    [BarChart3]: 'BarChart3',
+    [Database]: 'Database',
+    [Landmark]: 'Landmark'
+  }
+  return iconMap[iconComponent] || 'FileText'
+}
+
+// 收藏功能
+const toggleFavorite = async (app) => {
+  if (!currentUser.value) {
+    showLoginModal.value = true
+    return
+  }
+
+  // 检查是否已有操作在进行
+  if (favoriteOperationsPending.value.has(app.name)) {
+    return
+  }
+
+  try {
+    favoriteOperationsPending.value.add(app.name)
+
+    if (isFavorite(app)) {
+      // 删除收藏
+      await axios.delete(`http://localhost:8081/api/favorites/${currentUser.value.username}/${encodeURIComponent(app.name)}`)
+
+      const index = favorites.value.findIndex(fav => fav.name === app.name)
+      if (index !== -1) {
+        favorites.value.splice(index, 1)
+      }
+      showToast('已取消收藏', 'success')
+    } else {
+      // 添加收藏
+      const appData = {
+        ...app,
+        icon: getIconName(app.icon)
+      }
+
+      await axios.post('http://localhost:8081/api/favorites', {
+        userAccount: currentUser.value.username,
+        app: appData
+      })
+
+      favorites.value.push(app)
+      showToast('已添加到收藏夹', 'success')
+    }
+  } catch (error) {
+    console.error('收藏操作失败:', error)
+
+    if (error.response?.status === 429) {
+      showToast('操作过于频繁，请稍后再试', 'warning')
+    } else if (error.response?.status === 409) {
+      showToast('该应用已在收藏夹中', 'warning')
+    } else {
+      showToast('收藏操作失败，请稍后重试', 'error')
+    }
+  } finally {
+    favoriteOperationsPending.value.delete(app.name)
+  }
+}
+
+// 检查应用是否已收藏
+const isFavorite = (app) => {
+  return favorites.value.some(fav => fav.name === app.name)
+}
+
 // 检查是否已登录和加载收藏夹
 onMounted(() => {
   // 检查登录状态
@@ -716,21 +899,13 @@ onMounted(() => {
   if (savedUser) {
     try {
       currentUser.value = JSON.parse(savedUser)
+      // 登录后加载用户收藏夹
+      loadUserFavorites()
     } catch (e) {
       localStorage.removeItem('currentUser')
     }
   }
-  
-  // 加载收藏夹
-  const savedFavorites = localStorage.getItem('favorites')
-  if (savedFavorites) {
-    try {
-      favorites.value = JSON.parse(savedFavorites)
-    } catch (e) {
-      localStorage.removeItem('favorites')
-    }
-  }
-  
+
   // 加载搜索历史
   const savedSearchHistory = localStorage.getItem('searchHistory')
   if (savedSearchHistory) {
@@ -740,7 +915,7 @@ onMounted(() => {
       localStorage.removeItem('searchHistory')
     }
   }
-  
+
   // 加载公告已读状态
   const readNotices = localStorage.getItem('readNotices')
   if (readNotices) {
@@ -764,9 +939,15 @@ onMounted(() => {
   })
 })
 
-
-
-
+// 监听用户登录状态变化
+watch(currentUser, (newUser) => {
+  if (newUser) {
+    loadUserFavorites()
+  } else {
+    favorites.value = []
+    favoriteOperationsPending.value.clear()
+  }
+})
 
 // 搜索功能
 const handleSearch = () => {
@@ -777,10 +958,7 @@ const handleSearch = () => {
     return
   }
 
-  // 实时搜索
   performSearch()
-  
-  // 生成搜索建议
   generateSearchSuggestions()
   showSearchSuggestions.value = true
 }
@@ -792,14 +970,12 @@ const performSearch = () => {
     return
   }
 
-  // 搜索所有应用
   searchResults.value = allApps.filter(app => {
     return app.name.toLowerCase().includes(query) ||
            app.description.toLowerCase().includes(query) ||
            getCategoryName(app.category).toLowerCase().includes(query)
   })
 
-  // 添加到搜索历史
   addToSearchHistory(searchQuery.value)
 }
 
@@ -811,13 +987,11 @@ const generateSearchSuggestions = () => {
   }
 
   const suggestions = new Set()
-  
-  // 从应用名称生成建议
+
   allApps.forEach(app => {
     if (app.name.toLowerCase().includes(query)) {
       suggestions.add(app.name)
     }
-    // 从描述中提取关键词
     const words = app.description.split(/\s+/)
     words.forEach(word => {
       if (word.toLowerCase().includes(query) && word.length > 1) {
@@ -826,7 +1000,6 @@ const generateSearchSuggestions = () => {
     })
   })
 
-  // 从搜索历史生成建议
   searchHistory.value.forEach(history => {
     if (history.toLowerCase().includes(query)) {
       suggestions.add(history)
@@ -838,23 +1011,24 @@ const generateSearchSuggestions = () => {
 
 const addToSearchHistory = (query) => {
   if (!query.trim()) return
-  
-  // 移除重复项
+
   const index = searchHistory.value.indexOf(query)
   if (index > -1) {
     searchHistory.value.splice(index, 1)
   }
-  
-  // 添加到开头
+
   searchHistory.value.unshift(query)
-  
-  // 限制历史记录数量
+
   if (searchHistory.value.length > 10) {
     searchHistory.value = searchHistory.value.slice(0, 10)
   }
-  
-  // 保存到本地存储
+
   localStorage.setItem('searchHistory', JSON.stringify(searchHistory.value))
+}
+
+const selectSearchHistory = (history) => {
+  searchQuery.value = history
+  performSearch()
 }
 
 const clearSearchHistory = () => {
@@ -883,58 +1057,36 @@ const closeSearchModal = () => {
   showSearchSuggestions.value = false
 }
 
-// const selectSuggestion = (suggestion) => {
-//   searchQuery.value = suggestion
-//   showSearchSuggestions.value = false
-//   performSearch()
-// }
-
 const navigateSearchSuggestions = (direction) => {
   if (searchSuggestions.value.length === 0) return
-  
+
   selectedSuggestionIndex.value += direction
-  
+
   if (selectedSuggestionIndex.value < 0) {
     selectedSuggestionIndex.value = searchSuggestions.value.length - 1
   } else if (selectedSuggestionIndex.value >= searchSuggestions.value.length) {
     selectedSuggestionIndex.value = 0
   }
-  
+
   searchQuery.value = searchSuggestions.value[selectedSuggestionIndex.value]
 }
 
 const highlightSearchTerm = (text) => {
   if (!searchQuery.value.trim()) return text
-  
+
   const regex = new RegExp(`(${searchQuery.value})`, 'gi')
   return text.replace(regex, '<mark class="bg-yellow-200 px-1 rounded">$1</mark>')
 }
 
 // 热门应用（基于使用频率或推荐）
 const popularApps = computed(() => {
-  return allApps.slice(0, 8) // 取前8个作为热门应用
+  return allApps.slice(0, 8)
 })
+
 // 获取分类名称
 const getCategoryName = (categoryId) => {
   const category = categories.find(cat => cat.id === categoryId)
   return category ? category.name : '其他'
-}
-
-
-// 收藏功能
-const toggleFavorite = (app) => {
-  const index = favorites.value.findIndex(fav => fav.name === app.name)
-  if (index === -1) {
-    favorites.value.push(app)
-  } else {
-    favorites.value.splice(index, 1)
-  }
-  localStorage.setItem('favorites', JSON.stringify(favorites.value))
-}
-
-// 检查应用是否已收藏
-const isFavorite = (app) => {
-  return favorites.value.some(fav => fav.name === app.name)
 }
 
 // 登录处理
@@ -951,7 +1103,8 @@ const handleLogin = async () => {
     currentUser.value = {
       id: response.data.id,
       username: response.data.username,
-      role: response.data.role
+      role: response.data.role,
+      ssoToken: response.data.ssoToken // 新增：保存SSO令牌
     }
 
     localStorage.setItem('currentUser', JSON.stringify(currentUser.value))
@@ -961,6 +1114,10 @@ const handleLogin = async () => {
       username: '',
       password: ''
     }
+
+    // 登录成功后加载用户收藏夹
+    await loadUserFavorites()
+    showToast('登录成功', 'success')
   } catch (error) {
     console.error('登录失败:', error)
     loginError.value = error.response?.data?.message || '登录失败，请检查用户名和密码'
@@ -972,8 +1129,11 @@ const handleLogin = async () => {
 // 退出登录
 const handleLogout = () => {
   currentUser.value = null
+  favorites.value = []
+  favoriteOperationsPending.value.clear()
   localStorage.removeItem('currentUser')
   showUserMenu.value = false
+  showToast('已退出登录', 'success')
 }
 
 // 用户菜单状态
@@ -981,17 +1141,49 @@ const toggleUserMenu = () => {
   showUserMenu.value = !showUserMenu.value
 }
 
-// // 搜索
-// const searchQuery = ref('')
-
 // 公告功能
 const openNoticeDetail = (notice) => {
   selectedNotice.value = notice
   showNoticeModal.value = true
 }
 
+// 修改：处理应用点击事件，支持SSO跳转
+const handleAppClick = async (app, event) => {
+  if (!currentUser.value) {
+    event.preventDefault()
+    showLoginModal.value = true
+    return false
+  }
 
-// 通知数据（更新为包含真实文件名）
+  // 新增：如果是指标全生命周期管理应用，进行SSO跳转
+  if (app.name === '指标全生命周期管理') {
+    event.preventDefault()
+
+    try {
+      // 生成SSO跳转URL
+      const response = await axios.post('http://localhost:8081/api/sso/generate-url', {
+        username: currentUser.value.username,
+        targetUrl: 'http://localhost:3000/index.html'
+      })
+
+      if (response.data.success) {
+        // 跳转到带有SSO令牌的URL
+        window.open(response.data.redirectUrl, '_blank')
+      } else {
+        showToast('SSO跳转失败', 'error')
+      }
+    } catch (error) {
+      console.error('SSO跳转失败:', error)
+      showToast('SSO跳转失败，请稍后重试', 'error')
+    }
+
+    return false
+  }
+
+  return true
+}
+
+// 通知数据
 const notifications = [
   {
     id: 1,
@@ -1086,7 +1278,7 @@ const notifications = [
 
 // 强基项目
 const allApplications = [
-  { name: '指标全生命周期管理', icon: LifeBuoy, color: 'blue', description: '指标管理与监控平台', url: '#' },
+  { name: '指标全生命周期管理', icon: LifeBuoy, color: 'blue', description: '指标管理与监控平台', url: 'http://localhost:3000/sso-login' },
   { name: '智税展示', icon: Presentation, color: 'green', description: '税务数据可视化展示', url: '#' },
   { name: '税费服务诉求', icon: MessageSquare, color: 'purple', description: '税费服务与诉求处理', url: '#' },
   { name: '税费融合', icon: CreditCard, color: 'orange', description: '税费业务一体化管理', url: '#' },
@@ -1202,13 +1394,13 @@ const allApps = [
   { name: '区域税收分析', icon: PieChart, color: 'blue', category: 'analysis', description: '区域税收对比分析', url: '#' },
   { name: '行业税负分析', icon: BarChart3, color: 'orange', category: 'analysis', description: '行业税负水平分析', url: '#' },
   { name: '智税展示', icon: Presentation, color: 'green', category: 'analysis', description: '税务数据可视化展示', url: '#' },
-  { name: '指标全生命周期管理', icon: LifeBuoy, color: 'blue', category: 'analysis', description: '指标管理与监控平台', url: '#' },
+  { name: '指标全生命周期管理', icon: LifeBuoy, color: 'blue', description: '指标管理与监控平台', url: '#' },
 
   // 风险管理
   { name: '风险识别系统', icon: AlertCircle, color: 'red', category: 'risk', description: '税收风险智能识别', url: '#' },
   { name: '纳税人信用评级', icon: Users, color: 'blue', category: 'risk', description: '纳税人信用等级评定', url: '#' },
   { name: '风险应对策略', icon: FileCheck, color: 'green', category: 'risk', description: '税收风险应对策略', url: '#' },
-  { name: '慧眼', icon: Eye, color: 'red', category: 'risk', description: '税务风险智能监控', url: '#' },
+  { name: '慧眼', icon: Eye, color: 'red', description: '税务风险智能监控', url: '#' },
   { name: '大数据风控', icon: Database, color: 'indigo', category: 'risk', description: '大数据风险控制', url: '#' },
 
   // 政策法规
@@ -1247,5 +1439,16 @@ const filteredApps = computed(() => {
 
 .prose p {
   margin-bottom: 1em;
+}
+
+/* 加载动画 */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 </style>
